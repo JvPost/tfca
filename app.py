@@ -1,5 +1,5 @@
 from Models.World import World
-from Models.Agent import Agent, SeeingAgent
+from Models.Agent import Agent, Orientation, SeeingAgent
 from Models.FoodObject import FoodObject
 from Simulation import Simulation
 
@@ -17,7 +17,7 @@ def main():
     startEnergy = 10
     # agents = CreateAgents(worldWidth-1, worldHeight-1, agentsCount,
     #  agentWidth, agentHeight, startEnergy)
-    agents = [SeeingAgent((5,5), 1, 1, 10, 4)]
+    agents = [SeeingAgent((5,5), 1, 1, 10, 4, Orientation.NORTH)]
     
     stepsPerMove = 6
     timeStepsPerDay = 10

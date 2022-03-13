@@ -14,6 +14,7 @@ class ReceptiveField():
             plain.append(row)
 
         return np.array(plain)
+
             
 
     

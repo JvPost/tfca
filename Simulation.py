@@ -20,9 +20,12 @@ class Simulation:
         foodMap = Map(self.World, self.World.Food)
         # current map
         for agent in self.World.Agents:
-            seesFood, foodLocations = agent.SeesFoodAt(foodMap)
+            seesFood, foodLocations = agent.SeesFoodAt(foodMap.Matrix)
             if (seesFood):
+                locationIndex = agent.ChooseFoodIndex(foodLocations)
+
                 continue
+                
 
         # day end
         if self.CurrentTimeStep > self.TimeStepsInDay:
