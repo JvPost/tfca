@@ -14,6 +14,10 @@ class Orientation(IntEnum):
     SOUTH = 2,
     WEST = 3
 
+class AgentState(IntEnum):
+    IDLE = 0,
+    EATING = 1
+
 class Agent(WorldObject):
     HorizontalEnumValues = [1, 3]
     VerticalEnumVals = [0, 2]
@@ -24,6 +28,7 @@ class Agent(WorldObject):
         self.ReceptiveDistance = receptiveDistance
         self.Alive = True
         self.Cartesian = self.GetPerceptionField().AsCartesian()
+        self.State = AgentState.IDLE
 
     def GetPerceptionField(self)-> ReceptiveField: 
         X = self.GetPerceptionX()
@@ -37,14 +42,30 @@ class Agent(WorldObject):
     def GetPerceptionY(self):
         return [y for y in range(-self.ReceptiveDistance, self.ReceptiveDistance+1)]
         
-    def MoveTo(self, relativePosition: tuple) -> None:
-        """Changes a the position 
+    def ProposeMove(self, relativePosition: tuple) -> tuple:
+        """Returns the new position of the agent after moving from current position to relative position
 
         Args:
-            relativePosition (tuple): _description_
+            relativePosition (tuple): position relative to agent
+
+        Returns:
+            tuple: tuple containing X and Y coordinate after moving.
+        """
+        x = self.X + relativePosition[0]
+        y = self.Y + relativePosition[1]
+        return x, y
+
+    def MoveTo(self, relativePosition: tuple, finishState: AgentState) -> None:
+        """Changes absolute position according to relativePosition
+
+        Args:
+            relativePosition (tuple): position relative to agent
+            finishState (AgentState): state after moving
         """
         self.X = self.X + relativePosition[0]
         self.Y = self.Y + relativePosition[1]
+        self.State = finishState
+        
         
 
     def MoveRandom(self, stepsCount):
@@ -76,7 +97,7 @@ class Agent(WorldObject):
         
         return new_x, new_y
 
-    def SeesFoodAt(self, foodMap:np.array) -> tuple:
+    def SeesFoodAt(self, foodMap:np.array, verbose = False) -> tuple:
         """Trys and sees food in agents perception field.
         If sees food, the location relative to the agent is returned, empty list otherwise
 
@@ -95,21 +116,45 @@ class Agent(WorldObject):
         seesFood = np.any(foodPresentOnIndex)
         foodPresentRelativePositions = []
 
-        mask = np.zeros_like(foodMap)
-        mask[index_columns] = 1
+        if verbose:
+            mask = np.zeros_like(foodMap)
+            mask[index_columns] = 1
+            print(foodMap)
+            print('=====')
+            print(mask)
         if seesFood:
             location_indeces = np.where(foodPresentOnIndex)
             relativePositionIndeces = relativePositions.reshape(-1, relativePositions.shape[-1])
             for loc in location_indeces:
                 foodPresentRelativePositions.append(relativePositionIndeces[loc])
             
-        return seesFood, foodPresentRelativePositions
+        return seesFood, np.array(foodPresentRelativePositions).squeeze(0)
 
-    def ChooseFoodIndex(self, relativeFoodLocation : np.ndarray) -> int:
+    def FindNearestFood(self, relativeFoodLocations : np.ndarray) -> tuple:
+        """Find nearest food given relative food locations
+
+        Args:
+            relativeFoodLocation (np.ndarray): food locations relative to agent
+
+        Returns:
+            tuple: indeces of object relative to agent
+        """
         distances = []
-        for loc in relativeFoodLocation:
+        idx = -1
+        for loc in relativeFoodLocations:
             distances.append(np.sqrt(loc[0]**2 + loc[1]**2))
-        return np.argmin(distances)
+        idx = np.argmin(distances)
+        if (idx > -1):
+            loc = relativeFoodLocations[idx]
+            return (loc[0], loc[1])
+        else:
+            return None
+
+
+    def Eat(self):
+        if (self.State == AgentState.EATING):
+            self.Energy = self.Energy+1
+            self.State = AgentState.IDLE
 
 
 class SeeingAgent(Agent):

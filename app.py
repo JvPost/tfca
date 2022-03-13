@@ -7,7 +7,7 @@ import random
 
 def main():
     # world config
-    worldWidth = 10 
+    worldWidth = 10
     worldHeight = 10
 
     #agents config    
@@ -23,7 +23,7 @@ def main():
     timeStepsPerDay = 10
     
     #food config
-    foodCount = 10
+    foodCount = 6
     foodWidth = 1
     foodHeight = 1
     foods = CreateFood(worldWidth-1, worldHeight-1, foodCount,
@@ -35,8 +35,7 @@ def main():
 
     sim = Simulation(world, stepsPerMove, simulationLength, timeStepsPerDay)
     while(sim.Iterate()):
-
-        print('Hello world')
+        continue
         
 def CreateAgents(x_max, y_max, agentsCount, agentWidth, agentHeight, startEnergy):
     agents = []
