@@ -1,3 +1,4 @@
+from Models.LocatedObjects import LocatedObjects
 from Models.World import World
 from Models.Agent import Agent, Orientation, SeeingAgent
 from Models.FoodObject import FoodObject
@@ -17,7 +18,17 @@ def main():
     startEnergy = 10
     # agents = CreateAgents(worldWidth-1, worldHeight-1, agentsCount,
     #  agentWidth, agentHeight, startEnergy)
-    agents = [SeeingAgent((5,5), 1, 1, 10, 4, Orientation.NORTH)]
+    agents = [
+        SeeingAgent(1, 1, 8, 4, Orientation.NORTH),
+        # SeeingAgent(1, 1, 10, 4, Orientation.NORTH),
+    ]
+    agentLocations = [
+        (4,4), 
+        (5,4)
+    ]
+    locatedAgentsList = zip(agentLocations, agents)
+    locatedAgents = LocatedObjects(locatedObjectList=locatedAgentsList)
+
     
     stepsPerMove = 6
     timeStepsPerDay = 10
@@ -26,12 +37,24 @@ def main():
     foodCount = 6
     foodWidth = 1
     foodHeight = 1
-    foods = CreateFood(worldWidth-1, worldHeight-1, foodCount,
-     foodWidth, foodHeight)
+    # foods = CreateFood(worldWidth-1, worldHeight-1, foodCount,
+    #  foodWidth, foodHeight)
+    foods = [
+        FoodObject(1, 1),
+        FoodObject(1, 1),
+        FoodObject(1, 1)
+    ]
+    foodsLocations = [
+        (4,2),
+        (5,2),
+        (4,3)
+    ]
+    locatedFoodsList = zip(foodsLocations, foods)
+    locatedFoods = LocatedObjects(locatedObjectList=locatedFoodsList)
 
     # world config
     simulationLength = 100
-    world = World(worldWidth, worldHeight, agents, foods)
+    world = World(worldWidth, worldHeight, locatedAgents, locatedFoods)
 
     sim = Simulation(world, stepsPerMove, simulationLength, timeStepsPerDay)
     while(sim.Iterate()):
