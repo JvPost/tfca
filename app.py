@@ -1,6 +1,6 @@
 from Models.LocatedObjects import LocatedObjects
 from Models.World import World
-from Models.Agent import Agent, Orientation, SeeingAgent
+from Models.Agent import Agent, Orientation
 from Models.FoodObject import FoodObject
 from Simulation import Simulation
 from Models.Statistics import Statistics
@@ -11,23 +11,23 @@ import random
 
 def main():
     # world config
-    worldWidth = 1000
-    worldHeight = 1000
+    worldWidth = 20
+    worldHeight = 20
     stepsPerMove = 6
     timeStepsPerDay = 12
 
     #agents config    
-    agentsCount = 100
+    agentsCount = 20
     agentWidth = 1
     agentHeight = 1
-    startEnergy = 10
-    agents = CreateAgents(agentsCount, agentWidth, agentHeight, startEnergy)
+    startEnergy = 0
+    agents = CreateAgents(agentsCount, agentWidth, agentHeight, startEnergy, stepsPerMove)
     agent_locations = CreateLocations(worldWidth, worldHeight, agentsCount)
     locatedAgentsList = zip(agent_locations, agents)
     locatedAgents = LocatedObjects(locatedObjectList=locatedAgentsList)
     
     #food config
-    foodCount = 5000
+    foodCount = 40
     foodWidth = 1
     foodHeight = 1
     foods = CreateFood(foodCount, foodWidth, foodHeight)
@@ -40,17 +40,28 @@ def main():
     world = World(worldWidth, worldHeight, locatedAgents, locatedFoods)
 
     sim = Simulation(world, stepsPerMove, simulationLength, timeStepsPerDay)
-    while(sim.Iterate()):
-        PrintStatistics(sim.Statistics)
+    lastDay = False
+    while(not lastDay):
+        world_statistics = sim.Iterate()
         
-def CreateAgents(agentsCount: int, agentWidth: int, agentHeight: int, startEnergy: int) -> list:
+        PrintStatistics(world_statistics)
+        
+        # new food
+        foods = CreateFood(foodCount, foodWidth, foodHeight)
+        foodsLocations = CreateLocations(worldWidth, worldHeight, foodCount)
+        locatedFoodsList = zip(foodsLocations, foods)
+        locatedFoods = LocatedObjects(locatedObjectList=locatedFoodsList)
+        world.Food = locatedFoods
+        
+        lastDay = world_statistics.Day >= simulationLength
+
+def CreateAgents(agentsCount: int, agentWidth: int,
+                 agentHeight: int, startEnergy: int,
+                 stepsPerMove) -> list:
     agents = []
     while agentsCount > len(agents):
-        seeing = random.randint(0, 1)
-        if seeing == 1:
-            agent = SeeingAgent(agentWidth, agentHeight, startEnergy, 4)
-        else:
-            agent = Agent(agentWidth, agentHeight, startEnergy, 1)
+        senseDistance = random.randint(0, 10)
+        agent = Agent(agentWidth, agentHeight, startEnergy, senseDistance, stepsPerMove)
         agents.append(agent)
     return agents
 
@@ -63,13 +74,11 @@ def CreateLocations(x_max: int, y_max: int, count: int) -> np.array:
     zipped = zip(random_X, random_Y)    
     return [(x,y) for x,y in zipped]
     
-def PrintStatistics(stats: Statistics):
-    if (stats.CurrentTimeStep == 0):
-        print(f"Day{stats.DayCount}:\t",
-                    stats.BlindAgentsCount,
-                    stats.SeeingAgentsCount,
-                    stats.FoodCount
-              )
+def PrintStatistics(stats: Statistics) -> None:
+    print(
+        f"Day {stats.Day}\t {len(stats.Agents)} agents"
+    )
+    
 
 if __name__ == "__main__":
     main()

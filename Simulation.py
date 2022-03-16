@@ -1,7 +1,7 @@
 from typing import DefaultDict
 from Models.LocatedObjects import LocatedObjects
 from Models.Map import Map
-from Models.Agent import Agent, SeeingAgent, AgentState, Orientation
+from Models.Agent import Agent, AgentState, Orientation
 from Models.PerceptionField import PerceptionField
 from Models.World import World
 from Models.Statistics import Statistics
@@ -17,37 +17,39 @@ class Simulation:
         self.StepsPerMove = stepsPerMove
         self.SimulationLength = simulationLength
         self.TimeStepsInDay = timeStepsInDay
-        self.Statistics = self.InitStatistics()
+        self.CurrentTimeStep = 0
+        self.Day = 1
+        
 
-
-    def Iterate(self) -> bool: 
+    def Iterate(self) -> Statistics: 
+        while(self.CurrentTimeStep < self.TimeStepsInDay):
+            self.TimeStep()
+        
+        self.DayEnd()
+        # new statistics
+        # return statistics
+        return Statistics(self.Day, agents=self.World.Agents)
+        
+    
+    def TimeStep(self) -> bool:
         self.UpdateAgentMap(self.World, self.StepsPerMove)
         self.UpdateFoodMap(self.World)
-        self.Statistics.CurrentTimeStep+=1
+        self.CurrentTimeStep+=1
+    
+    def DayEnd(self) -> bool:
+        self.Day +=1
+        self.CurrentTimeStep = 0
+        self.World.EndOfDay()
+        self.RemoveDeadAgents()        
+        return False        
 
-        # day end
-        if self.Statistics.CurrentTimeStep >= self.TimeStepsInDay:
-            self.Statistics.DayCount += 1
-            self.Statistics.CurrentTimeStep = 0
-            self.World.EndOfDay()
-            self.RemoveDeadAgents()
-        
-        agentsAlive = len(self.World.Agents.Objects) > 0
-        finalDay = self.Statistics.DayCount == self.SimulationLength
-        return not finalDay and agentsAlive
-
-    def UpdateAgentMap(self, world : World, stepsCount: int):
+    def UpdateAgentMap(self, world : World, stepsCount: int): # TODO: Remove stepsCount as variable, stepsCount is specific to agent
         agentMap = Map(world, world.Agents)
         foodMap = Map(world, world.Food)
 
         proposedAgentLocations = LocatedObjects()
         finalAgentLocations = LocatedObjects()
 
-        # current map
-        # print("======= foodmap ========")
-        # print(foodMap.Matrix)
-        # print("======= agentmap =======")
-        # print(agentMap.Matrix)
         for loc in agentMap.LocatedObjects.Objects.keys():
             agent = agentMap.LocatedObjects.Objects[loc][0] # this is possible because there is always only one agent at location at this time
             perceptionField = PerceptionField(loc, agent)
@@ -111,10 +113,6 @@ class Simulation:
     def RemoveDeadAgents(self):
         for location, agent in self.World.DyingAgents:
             self.World.Agents.Objects.pop(location)
-            if type(agent) is SeeingAgent:
-                self.Statistics.SeeingAgentsCount -= 1
-            else:
-                self.Statistics.BlindAgentsCount -= 1
         self.World.DyingAgents = []
 
     def WithinBounds(self, location: tuple):
@@ -125,11 +123,11 @@ class Simulation:
     def UpdateFoodMap(self, world: World):
         for agent_location in world.Agents.keys():
             if agent_location in world.Food.keys():
+                # increase agents' energy by one
                 world.Agents.Objects[agent_location][0].Eat()
                 
                 # remove food
                 world.Food.Objects.pop(agent_location)
-                self.Statistics.FoodCount -= 1
                 
     def InitStatistics(self):
         seeingAgentsCount = 0
