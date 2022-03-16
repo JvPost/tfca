@@ -3,8 +3,6 @@ from .ReceptiveField import ReceptiveField
 from .Map import Map
 
 import numpy as np
-
-
 from enum import IntEnum
 import random
 
@@ -18,11 +16,12 @@ class Agent(WorldObject):
     HorizontalEnumValues = [1, 3]
     VerticalEnumVals = [0, 2]
 
-    def __init__(self, location: tuple, width, height, energy, receptiveDistance):
+    def __init__(self, location: tuple, width, height, energy, receptiveDistance, orientation = None):
         super().__init__(location, width, height)
         self.Energy = energy
         self.ReceptiveDistance = receptiveDistance
         self.Alive = True
+        self.Orientation = orientation
         self.Cartesian = self.GetPerceptionField().AsCartesian();
 
     def GetPerceptionField(self)-> ReceptiveField: 
@@ -85,8 +84,8 @@ class Agent(WorldObject):
             tuple: 2-tuple containing bool indicating whether agents sees food and location of food.
             Location is relative to agent, where agent location is (0,0)
         """
-        plain = self.Cartesian
-        relativeSlice = plain + [self.X, self.Y]
+        plain = self.Cartesian + [self.X, self.Y]
+        sel
         return plain
         # x_min, x_max, y_min, y_max = self.GetPerceptionField().AsTuple()
         # bitMap = foodMap.Slice(x_min, x_max, y_min, y_max)
@@ -101,11 +100,17 @@ class Agent(WorldObject):
 
 
 class SeeingAgent(Agent):
-    def __init__(self, location: tuple, width, height, energy, receptiveDistance):
-        super().__init__(location, width, height, energy, receptiveDistance)
-        orientationInt = random.randint(0, 3)
-        self.Orientation = Orientation(orientationInt)
+    def __init__(self, location: tuple, width, height, energy, receptiveDistance, orientation = None):
+        super().__init__(location, width, height, energy, receptiveDistance, orientation)
+        if orientation == None:
+            self.Orientation = self.RandomOrientation()
+        else:
+            self.Orientation = orientation
     
+    def RandomOrientation(self):
+        orientationInt = random.randint(0, 3)
+        return Orientation(orientationInt)
+
     def GetPerceptionX(self) -> list:
         X = []
         if self.Orientation == Orientation.NORTH or self.Orientation == Orientation.SOUTH:
@@ -115,17 +120,6 @@ class SeeingAgent(Agent):
         elif self.Orientation == Orientation.WEST:
             X = [x for x in range(-self.ReceptiveDistance, 1)]
         return X
-        # new_min_x, new_max_x = 0, 0
-        # if self.Orientation == Orientation.NORTH or self.Orientation == Orientation.SOUTH:
-        #     new_min_x = self.X - 1
-        #     new_max_x = self.X + 1
-        # elif self.Orientation == Orientation.EAST:
-        #     new_min_x = self.X
-        #     new_max_x = self.X + self.ReceptiveDistance
-        # elif self.Orientation == Orientation.WEST:
-        #     new_min_x = self.X - self.ReceptiveDistance
-        #     new_max_x = self.X
-        # return new_min_x, new_max_x
 
     def GetPerceptionY(self) -> list:
         Y = []
@@ -136,20 +130,9 @@ class SeeingAgent(Agent):
         elif self.Orientation == Orientation.NORTH:
             Y = [y for y in range(-self.ReceptiveDistance, 1)]
         return Y
-        # new_min_y, new_max_y = 0, 0
-        # if self.Orientation == Orientation.EAST or self.Orientation == Orientation.WEST:
-        #     new_min_y = self.Y - 1
-        #     new_max_y = self.Y + 1
-        # elif self.Orientation == Orientation.SOUTH:
-        #     new_min_y = self.Y
-        #     new_max_y = self.Y + self.ReceptiveDistance
-        # elif self.Orientation == Orientation.NORTH:
-        #     new_min_y = self.Y - self.ReceptiveDistance
-        #     new_max_y = self.Y
-        # return new_min_y, new_max_y
 
-    # def GetPerceptionField(self) -> ReceptiveField :
-        
-    #     min_x, max_x = self.GetPerceptionX()
-    #     min_y, max_y = self.GetPerceptionY()
-    #     return ReceptiveField(min_x, max_x, min_y, max_y)
+    def GetPerceptionField(self)-> ReceptiveField: 
+        X = self.GetPerceptionX()
+        Y = self.GetPerceptionY();
+        field = ReceptiveField(X, Y) 
+        return field
