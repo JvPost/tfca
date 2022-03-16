@@ -9,9 +9,19 @@ class World:
         self.Height = height
         self.Agents = agents
         self.Food = food
+        self.DyingAgents = []
+        self.NewAgents = []
 
     def EndOfDay(self):
-        pass
+        for location in self.Agents.keys():
+            agent = self.Agents.Objects[location][0]
+            agent.EndOfDay()
+            if not agent.Alive:
+                self.DyingAgents.append((location, agent))
+            
+            
+        
+        
 
     
             

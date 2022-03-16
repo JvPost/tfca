@@ -40,6 +40,11 @@ class Agent(WorldObject):
             self.Energy = self.Energy+1
             self.State = AgentState.IDLE
 
+    def EndOfDay(self):
+        self.Energy -= 1
+        if self.Energy<0:
+            self.Alive = False
+
     def ChooseNextLocation(self, locatedObjects: LocatedObjects) -> tuple:
         """_summary_
 
@@ -101,6 +106,7 @@ class Agent(WorldObject):
             new_y = curr_y+y_stepsCount
         self.Orientation = Orientation(random.randint(0, 3))
         return new_x, new_y
+    
 
 class SeeingAgent(Agent):
     def __init__(self,width, height, energy, receptiveDistance, orientation = None):

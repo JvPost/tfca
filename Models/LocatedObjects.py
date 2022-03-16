@@ -18,7 +18,7 @@ class LocatedObjects():
             self.Objects = locatedObjectDict
         elif locatedObjectList is not None:
             for location, obj in locatedObjectList:
-                self.Objects[location].append(obj)
+                self.Objects[tuple(location)].append(obj)
         self.ObjectsList = self.ToList()
         
     def ToList(self):
