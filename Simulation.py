@@ -2,123 +2,174 @@ from typing import DefaultDict
 from Models.LocatedObjects import LocatedObjects
 from Models.Map import Map
 from Models.Agent import Agent, AgentState, Orientation
-from Models.PerceptionField import PerceptionField
+from Models.Plane import Plane
 from Models.World import World
 from Models.Statistics import Statistics
+from Window import Window
+
+from Graphics.graphics import *
 
 import numpy as np
 from collections import defaultdict
 import random
+import time
+import math
 
 class Simulation:
     def __init__(self, world : World, stepsPerMove:int,
-     simulationLength:int, timeStepsInDay:int):
+     simulationLength:int, timeStepsInDay:int, visualize: bool):
         self.World = world
         self.StepsPerMove = stepsPerMove
         self.SimulationLength = simulationLength
         self.TimeStepsInDay = timeStepsInDay
         self.CurrentTimeStep = 0
         self.Day = 1
+        self.Visualize = visualize
+        self.Window = Window(world.Width, world.Height, world.Agents, 3)
+                
         
 
-    def Iterate(self) -> Statistics: 
+    def Iterate(self, wait = False) -> Statistics: 
         while(self.CurrentTimeStep < self.TimeStepsInDay):
-            self.TimeStep()
+            self.TimeStep(wait)
         
         self.DayEnd()
-        # new statistics
-        # return statistics
         return Statistics(self.Day, agents=self.World.Agents)
         
     
-    def TimeStep(self) -> bool:
+    def TimeStep(self, wait = False) -> bool:
         self.UpdateAgentMap(self.World, self.StepsPerMove)
         self.UpdateFoodMap(self.World)
         self.CurrentTimeStep+=1
+        if (self.Visualize and wait):
+            time.sleep(0.1)
     
     def DayEnd(self) -> bool:
         self.Day +=1
         self.CurrentTimeStep = 0
         self.World.EndOfDay()
-        self.RemoveDeadAgents()        
-        return False        
+        self.RemoveDeadAgents()
+        # self.AddNewAgents()
 
-    def UpdateAgentMap(self, world : World, stepsCount: int): # TODO: Remove stepsCount as variable, stepsCount is specific to agent
+    def UpdateAgentMap(self, world : World, speed: int):
         agentMap = Map(world, world.Agents)
         foodMap = Map(world, world.Food)
 
-        proposedAgentLocations = LocatedObjects()
-        finalAgentLocations = LocatedObjects()
+        # dict with new locations as key and values is the list of locations of agents that want to move to the location that is the key
+        proposedMoves = defaultdict(list)
 
         for loc in agentMap.LocatedObjects.Objects.keys():
             agent = agentMap.LocatedObjects.Objects[loc][0] # this is possible because there is always only one agent at location at this time
-            perceptionField = PerceptionField(loc, agent)
-            detectedFood = foodMap.GetDetectedObjects(loc, perceptionField)
+            perceptionPlane = Plane(loc, agent.SenseDistance)
+            detectedFood = foodMap.GetDetectedObjects(loc, perceptionPlane)
             if len(detectedFood) > 0:
-                nextLocation = agent.ChooseNextLocation(detectedFood)
-                agentNewLocation = agent.Move(loc, nextLocation, Orientation.RANDOM)
+                agent.ChooseNextLocation(detectedFood)
+                agentNewLocation = agent.GetNewLocation(loc)
+                proposedMoves[agentNewLocation].append(loc)
             else:
-                agentNewLocation = agent.MoveRandom(loc, stepsCount)
+                agent.ChooseRandomNextLocation(speed)
+            agentNewLocation = agent.GetNewLocation(loc)
             
-            # move if location within bounds of world
-            if self.WithinBounds(agentNewLocation):
-                agent.State = AgentState.MOVING
-                proposedAgentLocations.add(agentNewLocation, agent)
+            if self.WithinBounds(agentNewLocation): # make more elegant
+                proposedMoves[agentNewLocation].append(loc)
             else:
-                proposedAgentLocations.add(loc, agent)
+                agent.Angle = (agent.Angle + math.pi) % 2*math.pi
             
 
-        # work out collisions after moving to the same cell
-        for loc in proposedAgentLocations.keys():
-            agentsAtLocation = proposedAgentLocations.Objects[loc]
+        # work out collisions
+        winningAgents = LocatedObjects() # agents that are actualy going to move
+        losingAgents = LocatedObjects() # agents that will lose out ot stronger agents and stay put
+    
+        for new_loc in proposedMoves.keys():
+            movingAgents = LocatedObjects(locatedObjectList=[[origin,
+                                                              self.World.Agents.Objects[origin][0]] for origin in proposedMoves[new_loc]])
+            winningAgentOrigin, winningAgent = None, None
             energies = []
-            winning_agent = None
-            losing_agents = []
-
-            # move agents
-            for agent in agentsAtLocation:
-                if len(energies) > 0:
-                    if agent.Energy == max(energies) and random.randint(0, 1) == 0: #if 2 agents have same amount of energy, randomly pick one to win the collision
-                        losing_agents.append(winning_agent)
-                        winning_agent = agent
-                    elif agent.Energy > max(energies):
-                        losing_agents.append(winning_agent)
-                        winning_agent = agent
-                    else: #when agent has less energy
-                        losing_agents.append(agent)
-                else:
-                    winning_agent = agent
-                energies.append(agent.Energy)
             
+            if len(movingAgents) == 1: # no colision
+                origin = proposedMoves[new_loc][0]
+                agent = self.World.Agents.Objects[origin][0]
+                winningAgents.add(origin, agent)
+            else: # collision
+                for origin in proposedMoves[new_loc]:
+                    agent = self.World.Agents.Objects[origin][0]
+                    if len(energies) > 0:
+                        if agent.Energy == max(energies) and random.randint(0, 1) == 1:
+                            losingAgents.add(winningAgentOrigin, winningAgent)
+                            winningAgentOrigin = origin
+                            winningAgent = agent
+                        elif agent.Energy > max(energies):
+                            losingAgents.add(winningAgentOrigin, winningAgent)
+                            winningAgentOrigin = origin
+                            winningAgent = agent
+                        else:
+                            losingAgents.add(origin, agent)
+                    else:
+                        winningAgentOrigin = origin
+                        winningAgent = agent
+                    energies.append(agent.Energy)
+                winningAgents.add(winningAgentOrigin, winningAgent)
             
-            winning_agent.State = AgentState.EATING
-            finalAgentLocations.add(loc, winning_agent)
-
-            # move back losing agents
-            for losing_agent in losing_agents:
-                location, located_losing_Agent = None, None
-                for loc in agentMap.LocatedObjects.keys():
-                    agent = agentMap.LocatedObjects.Objects[loc][0]
-                    if agent.Id == losing_agent.Id:
-                        location = loc
-                        located_losing_Agent = agent
-                        break
-                if location == None or located_losing_Agent == None:
-                    raise("Something went wrong here")
-                finalAgentLocations.add(loc, located_losing_Agent)
-
-        world.Agents = finalAgentLocations
+                            
+        # actually move winning agents
+        for origin in winningAgents.keys():
+            agent = winningAgents.Objects[origin][0]
+            self.MoveAgent(origin, agent)
         
+        # reset not moving agents intent to zero
+        for origin in losingAgents.keys():
+            agent = losingAgents.Objects[origin][0]
+            agent.Intention = (0, 0)
+        
+    def MoveAgent(self, location: tuple, agent: Agent):
+        if len(self.World.Agents.Objects[location]) == 1:
+            self.World.Agents.Objects.pop(location)
+            newLocation = tuple(np.array(location) + np.array(agent.Intention))
+            self.World.Agents.Objects[newLocation].append(agent)
+            
+            # visualize
+            if self.Visualize:
+                dx, dy = agent.Intention
+                self.Window.Move(location, dx, dy)
+                
+        else: 
+            # this happens sometimes not sure how to fix this eligantly
+            # this happens when a agents has to move back after a collision, which then creates a new collision
+            # TODO: still have to move both agents.
+            del self.World.Agents.Objects[location][0]
+            if self.Visualize:
+                self.Window.Draw(location)
+        
+        agent.Intention = (0,0)
+            
         
     def RemoveDeadAgents(self):
         for location, agent in self.World.DyingAgents:
             self.World.Agents.Objects.pop(location)
+            if self.Visualize:
+                self.Window.Delete(location)
         self.World.DyingAgents = []
+        
+        
+    def AddNewAgents(self):
+        for agent in self.World.NewAgents:
+            x = random.randint(0, self.World.Width-1)
+            y = random.randint(0, self.World.Height-1)
+            while (x, y) in self.World.Agents.Objects:
+                x = random.randint(0, self.World.Width-1)
+                y = random.randint(0, self.World.Height-1)
+            self.World.Agents.Objects[(x,y)].append(agent)
+            
+            if self.Visualize:
+                self.Window.Draw((x, y))
+            
+        self.World.NewAgents = []
 
     def WithinBounds(self, location: tuple):
         x = location[0]
         y = location[1]
-        return x >= 0 and x < self.World.Width and y >= 0 and y < self.World.Height
+        withinBounds = x >= 0 and x < self.World.Width and y >= 0 and y < self.World.Height
+        return withinBounds
 
     def UpdateFoodMap(self, world: World):
         for agent_location in world.Agents.keys():
@@ -129,15 +180,3 @@ class Simulation:
                 # remove food
                 world.Food.Objects.pop(agent_location)
                 
-    def InitStatistics(self):
-        seeingAgentsCount = 0
-        blindAgentsCount = 0
-        foodCount = len(self.World.Food.ObjectsList)
-        dayCount = 0
-        for agent in self.World.Agents.ObjectsList:
-            if type(agent) is SeeingAgent:
-                seeingAgentsCount += 1
-            else:
-                blindAgentsCount+=1
-                
-        return Statistics(seeingAgentsCount, blindAgentsCount, foodCount, dayCount, 0, 0)

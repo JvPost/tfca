@@ -1,7 +1,7 @@
 import uuid
 
 class WorldObject:
-    def __init__(self, width, height, orientation = None):            
+    def __init__(self, width, height):            
         self.Width = width
         if self.Width%2 == 0:
             self.Width = self.Width + 1
@@ -10,5 +10,4 @@ class WorldObject:
         if self.Height%2 == 0:
             self.Height = self.Height + 1
 
-        self.Orientation = orientation
         self.Id = uuid.uuid4()

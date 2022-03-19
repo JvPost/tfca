@@ -4,7 +4,7 @@ import numpy as np
 from Models.WorldObject import WorldObject
 from Models.LocatedObjects import LocatedObjects
 from Models.World import World
-from Models.PerceptionField import PerceptionField
+from Models.Plane import Plane
 
 class Map:
     def __init__(self, world: World = None, locatedObjects: LocatedObjects = LocatedObjects()):
@@ -12,56 +12,60 @@ class Map:
         if world is not None:
             self.Width = world.Width
             self.Height = world.Height
-        self.Matrix = self.GetMatrix()
-        
+            
     def GetMatrix(self):
         matrix = np.zeros((self.Height, self.Width))
         for x,y in self.LocatedObjects.Objects.keys():
             matrix[y,x] = 1
         return matrix
 
-    def GetDetectedObjects(self, location: tuple, field: PerceptionField) -> LocatedObjects:
+    def GetDetectedObjects(self, location: tuple, plane: Plane) -> LocatedObjects:
         """Gets LocatedObjects relative to agent
 
         Args:
             location (tuple): location to detect from.
-            field (PerceptionField): field object being perceived
+            plane (Plane): plane object being perceived
 
         Returns:
             LocatedObjects: objects located relative to agent.
         """
-        relPositionsPlain = field.Cartesian
-        relPositionIndeces = relPositionsPlain.reshape(-1, relPositionsPlain.shape[-1])
+        # rel = relative
+        relPlane = plane.Cartesian
+        relIndeces = relPlane.reshape(-1, relPlane.shape[-1])
         
-        absPositionsPlain = field.Cartesian + location
-        absPositionIndeces = absPositionsPlain.reshape(-1, absPositionsPlain.shape[-1])
+        mapPlane = plane.Cartesian + location
+        mapIndeces = mapPlane.reshape(-1, mapPlane.shape[-1])
 
-        relativePositionedObjects = []
-        for i, _ in enumerate(absPositionIndeces):
-            absolutePositionIndex = tuple(absPositionIndeces[i])
-            if absolutePositionIndex in self.LocatedObjects.Objects.keys():
-                relativePositionIndex = tuple(relPositionIndeces[i])
-                obj = self.LocatedObjects.Objects[absolutePositionIndex][0]
-                relativePositionedObjects.append((relativePositionIndex, obj))
-        locatedObjects = LocatedObjects(locatedObjectList=relativePositionedObjects)
+        relLocatedObjects = []
+        for i, _ in enumerate(mapIndeces):
+            mapIndex = tuple(mapIndeces[i])
+            if mapIndex in self.LocatedObjects.Objects.keys():
+                relativePositionIndex = tuple(relIndeces[i])
+                obj = self.LocatedObjects.Objects[mapIndex][0]
+                relLocatedObjects.append((relativePositionIndex, obj))
+        locatedObjects = LocatedObjects(locatedObjectList=relLocatedObjects)
         return locatedObjects
-        # return [(loc, item) for loc, item in zip(matrix_indeces, self.Matrix[matrix_indeces_columns])]
+    
+    def GetMovementPlane(self, location: tuple, speed: int) -> Plane:
+        """Should only be used if locatedObjects in this map are of type agents
+        
 
-    # def GetMapFor(self, objects):
-    #     _loc = [(obj.X, obj.Y) for obj in objects]
-    #     _map = np.zeros((self.Height, self.Width))
-    #     for x, y in _loc:
-    #         _map[y, x] = 1
-    #     return _map
+        Args:
+            location (tuple): _description_
+            speed (int): _description_
 
-    # def GetLocatedObjects(self):
-    #     objects = defaultdict(list)
-    #     for obj in self.Objects:
-    #         self.LocatedObjects[(obj.X, obj.Y)].append(obj)
+        Returns:
+            Plane: _description_
+        """        
+        plane = Plane(location, speed).Cartesian
+        # relPositionIndeces = relPositionsPlain.reshape(-1, relPositionsPlain.shape[-1])
 
-    # def GetObjectList(self):
-    #     d = self.LocatedObjects
-    #     return [obj for obj in self.Objects]
+        mapPlane = plane + location
+        # absPositionsIndeces = absPositionsPlain.reshape(-1, absPositionsPlain.shape[-1])
+        
+        mapPlane = mapPlane[ mapPlane[:,:, 0] >= 0 ]    
+        
+        return
     
 
     
