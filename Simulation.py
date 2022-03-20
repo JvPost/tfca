@@ -25,7 +25,8 @@ class Simulation:
         self.CurrentTimeStep = 0
         self.Day = 1
         self.Visualize = visualize
-        self.Window = Window(world.Width, world.Height, world.Agents, 3)
+        if visualize:
+            self.Window = Window(world.Width, world.Height, world.Agents, 3)
                 
         
 
@@ -49,7 +50,7 @@ class Simulation:
         self.CurrentTimeStep = 0
         self.World.EndOfDay()
         self.RemoveDeadAgents()
-        # self.AddNewAgents()
+        self.AddNewAgents()
 
     def UpdateAgentMap(self, world : World, speed: int):
         agentMap = Map(world, world.Agents)
@@ -65,12 +66,11 @@ class Simulation:
             if len(detectedFood) > 0:
                 agent.ChooseNextLocation(detectedFood)
                 agentNewLocation = agent.GetNewLocation(loc)
-                proposedMoves[agentNewLocation].append(loc)
             else:
                 agent.ChooseRandomNextLocation(speed)
             agentNewLocation = agent.GetNewLocation(loc)
             
-            if self.WithinBounds(agentNewLocation): # make more elegant
+            if self.WithinBounds(agentNewLocation): # TODO: make OO
                 proposedMoves[agentNewLocation].append(loc)
             else:
                 agent.Angle = (agent.Angle + math.pi) % 2*math.pi
@@ -80,7 +80,7 @@ class Simulation:
         winningAgents = LocatedObjects() # agents that are actualy going to move
         losingAgents = LocatedObjects() # agents that will lose out ot stronger agents and stay put
     
-        for new_loc in proposedMoves.keys():
+        for new_loc in proposedMoves.keys():            
             movingAgents = LocatedObjects(locatedObjectList=[[origin,
                                                               self.World.Agents.Objects[origin][0]] for origin in proposedMoves[new_loc]])
             winningAgentOrigin, winningAgent = None, None
@@ -113,42 +113,42 @@ class Simulation:
                             
         # actually move winning agents
         for origin in winningAgents.keys():
-            agent = winningAgents.Objects[origin][0]
-            self.MoveAgent(origin, agent)
+            self.MoveAgent(origin)
         
         # reset not moving agents intent to zero
         for origin in losingAgents.keys():
             agent = losingAgents.Objects[origin][0]
-            agent.Intention = (0, 0)
-        
-    def MoveAgent(self, location: tuple, agent: Agent):
-        if len(self.World.Agents.Objects[location]) == 1:
-            self.World.Agents.Objects.pop(location)
-            newLocation = tuple(np.array(location) + np.array(agent.Intention))
-            self.World.Agents.Objects[newLocation].append(agent)
+            newLocation = (origin[0] + agent.Intention[0], origin[1] + agent.Intention[1])
+            neighborCells = agentMap.FindClosestEmptyCells(newLocation)
+            neighborCell = neighborCells[np.random.randint(0, len(neighborCells))]
+            agent.Intention = (neighborCell[0] + agent.Intention[0], neighborCell[1] + agent.Intention[1])
+            self.MoveAgent(origin)
             
-            # visualize
-            if self.Visualize:
-                dx, dy = agent.Intention
-                self.Window.Move(location, dx, dy)
-                
-        else: 
-            # this happens sometimes not sure how to fix this eligantly
-            # this happens when a agents has to move back after a collision, which then creates a new collision
-            # TODO: still have to move both agents.
-            del self.World.Agents.Objects[location][0]
-            if self.Visualize:
-                self.Window.Draw(location)
+        for loc in self.World.Agents.keys():
+            agents = self.World.Agents.Objects[loc]
+            if len(agents) > 1:
+                continue # TODO: fix dit probleem, more than on ehsould never be possible here.
         
+    def MoveAgent(self, location: tuple):
+        agent = self.World.Agents.Objects.pop(location)[0]
+        newLocation = tuple(np.array(location) + np.array(agent.Intention))
+        self.World.Agents.Objects[newLocation].append(agent)
+        
+        # visualize
+        if self.Visualize:
+            dx, dy = agent.Intention
+            self.Window.Move(location, dx, dy)
         agent.Intention = (0,0)
+        
             
         
     def RemoveDeadAgents(self):
-        for location, agent in self.World.DyingAgents:
-            self.World.Agents.Objects.pop(location)
-            if self.Visualize:
-                self.Window.Delete(location)
-        self.World.DyingAgents = []
+        if len(self.World.DyingAgents) > 0:
+            for location, agent in self.World.DyingAgents:
+                self.World.Agents.Objects.pop(location)
+                if self.Visualize:
+                    self.Window.Delete(location)
+            self.World.DyingAgents = []
         
         
     def AddNewAgents(self):
