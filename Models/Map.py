@@ -45,7 +45,43 @@ class Map:
                 relLocatedObjects.append((relativePositionIndex, obj))
         locatedObjects = LocatedObjects(locatedObjectList=relLocatedObjects)
         return locatedObjects
+
+    def FindClosestEmptyCells(self, location: tuple) -> tuple:
+        """_summary_
+
+        Args:
+            location (tuple): _description_
+
+        Returns:
+            tuple: _description_
+        """
+        locationFound = False
+        relEmptyCells = []
+        searchBreadth = 1
+        while len(relEmptyCells) == 0:
+            relPlane = Plane(location, searchBreadth).Cartesian
+            relIndeces = relPlane.reshape(-1, relPlane.shape[-1])
+            
+            mapPlane = relPlane + location
+            mapIndeces = mapPlane.reshape(-1, mapPlane.shape[-1])
+            for idx, _ in enumerate(mapIndeces):
+                mapIndex = tuple(mapIndeces[idx])
+                if mapIndex not in self.LocatedObjects.Objects.keys():
+                    relativePositionIndex = tuple(relIndeces[idx])
+                    if relativePositionIndex is not (0,0):
+                        relEmptyCells.append(relativePositionIndex)
+            locationFound = len(relEmptyCells) == 0
+            searchBreadth += 1
+            
+        relEmptyCells = np.array(relEmptyCells)
+        relEmptyCellDists = np.array([np.sqrt(x**2 + y**2) for x, y in relEmptyCells])
+        relEmptyCells = relEmptyCells[relEmptyCellDists == np.min(relEmptyCellDists)]
+        
+        return relEmptyCells
+        
     
+        
+            
     def GetMovementPlane(self, location: tuple, speed: int) -> Plane:
         """Should only be used if locatedObjects in this map are of type agents
         
@@ -66,8 +102,3 @@ class Map:
         mapPlane = mapPlane[ mapPlane[:,:, 0] >= 0 ]    
         
         return
-    
-
-    
-        
-        

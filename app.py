@@ -12,31 +12,39 @@ import random
 
 def main():
     # world config
-    worldWidth = 100
-    worldHeight = 100
-    stepsPerMove = 3
-    timeStepsPerDay = 40
+    worldWidth = 20
+    worldHeight = 20
+    stepsPerMove = 1
+    timeStepsPerDay = 10
     slow = False
     
     #agents config    
-    agentsCount = 10
+    agentsCount = 4
     agentWidth = 1
     agentHeight = 1
     startEnergy = 0
+    
     agents = CreateAgents(agentsCount, agentWidth, agentHeight, startEnergy, stepsPerMove)
     agent_locations = CreateLocations(worldWidth, worldHeight, agentsCount)
-    # agents = [Agent(1, 1, 1000, 5, 3, 0)]
-    # agent_locations = [(0, 50)]    
+    
+    # agents = [Agent(1, 1, 0, 5, 3, 0) for i in range(3)]
+    # agent_locations = [(49, 50), (50, 50), (51, 50)]
+    
     locatedAgentsList = zip(agent_locations, agents)
     locatedAgents = LocatedObjects(locatedObjectList=locatedAgentsList)
     
     
     #food config
-    foodCount = 1667
+    foodCount = 50
     foodWidth = 1
     foodHeight = 1
+    
     foods = CreateFood(foodCount, foodWidth, foodHeight)
     foodsLocations = CreateLocations(worldWidth, worldHeight, foodCount)
+    
+    # foods = [FoodObject(1, 1) for i in range(10)]
+    # foodsLocations = [(50, 49 - i) for i in range(10)]
+    
     locatedFoodsList = zip(foodsLocations, foods)
     locatedFoods = LocatedObjects(locatedObjectList=locatedFoodsList)
 
@@ -44,7 +52,8 @@ def main():
     simulationLength = 1000
     world = World(worldWidth, worldHeight, locatedAgents, locatedFoods)
 
-    sim = Simulation(world, stepsPerMove, simulationLength, timeStepsPerDay, True)
+    visualize = False
+    sim = Simulation(world, stepsPerMove, simulationLength, timeStepsPerDay, visualize=visualize)
     start_statistics = Statistics(1, locatedAgents)
     stop = False
     while(not stop):
@@ -60,6 +69,8 @@ def main():
         world.Food = locatedFoods
         
         stop = world_statistics.Day >= simulationLength or len(world.Agents) == 0
+        
+    print("Finish")
 
 def CreateAgents(agentsCount: int, agentWidth: int,
                  agentHeight: int, startEnergy: int,

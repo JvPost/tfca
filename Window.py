@@ -20,6 +20,8 @@ class Window:
         pt = self.AgentPoints[location]
         pt.move(self.Scale*dx, self.Scale*dy)
         location_new = tuple(np.array(location) + np.array((dx, dy)))
+        if location_new in self.AgentPoints:
+            print("Fishy")
         self.AgentPoints[location_new] = self.AgentPoints.pop(location)
         
     def Delete(self, location: tuple):

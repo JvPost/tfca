@@ -41,9 +41,9 @@ class Agent(WorldObject):
         self.Energy = self.Energy+1
 
     def EndOfDay(self) -> AgentDayResult:
-        self.Energy -= round(self.EnergyCost/3)
+        self.Energy -= (round(self.EnergyCost/3) + 1)
         child = None
-        if self.Energy < 0:
+        if self.Energy < 1:
             self.Alive = False
         elif self.Energy > 1:
             child = self.Replicate()
@@ -102,7 +102,7 @@ class Agent(WorldObject):
     
 
     def Replicate(self):
-        childSenseRange = round(np.random.normal(self.SenseDistance, 2))
+        childSenseRange = max(0, round(np.random.normal(self.SenseDistance, 1)))
         child = Agent(self.Width, self.Height, 0,
                       childSenseRange, self.Speed)
         return child

@@ -23,7 +23,7 @@ class World:
             if not agent.Alive:
                 self.DyingAgents.append((location, agent))
             elif result.Child is not None:
-                self.NewAgents.append(agent)
+                self.NewAgents.append(result.Child)
             
         
                 
