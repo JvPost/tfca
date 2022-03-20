@@ -83,14 +83,14 @@ class Simulation:
         for new_loc in proposedMoves.keys():            
             movingAgents = LocatedObjects(locatedObjectList=[[origin,
                                                               self.World.Agents.Objects[origin][0]] for origin in proposedMoves[new_loc]])
-            winningAgentOrigin, winningAgent = None, None
-            energies = []
             
             if len(movingAgents) == 1: # no colision
                 origin = proposedMoves[new_loc][0]
                 agent = self.World.Agents.Objects[origin][0]
                 winningAgents.add(origin, agent)
             else: # collision
+                energies = []
+                winningAgentOrigin, winningAgent = None, None
                 for origin in proposedMoves[new_loc]:
                     agent = self.World.Agents.Objects[origin][0]
                     if len(energies) > 0:
@@ -113,7 +113,12 @@ class Simulation:
                             
         # actually move winning agents
         for origin in winningAgents.keys():
-            self.MoveAgent(origin)
+            newLocation = self.MoveAgent(origin)
+            agentAtLoc = self.World.Agents.Objects[newLocation]
+            foodsAtLoc = self.World.Food.Objects[newLocation]
+            if len(agentAtLoc) > 1:
+                continue
+            
         
         # reset not moving agents intent to zero
         for origin in losingAgents.keys():
@@ -124,12 +129,16 @@ class Simulation:
             agent.Intention = (neighborCell[0] + agent.Intention[0], neighborCell[1] + agent.Intention[1])
             self.MoveAgent(origin)
             
-        for loc in self.World.Agents.keys():
-            agents = self.World.Agents.Objects[loc]
-            if len(agents) > 1:
-                continue # TODO: fix dit probleem, more than on ehsould never be possible here.
         
-    def MoveAgent(self, location: tuple):
+    def MoveAgent(self, location: tuple) -> tuple:
+        """Takes an agent on location and moves it based on it's intent. The visualization module is also updated.
+
+        Args:
+            location (tuple): the location of the agent to be moved.
+
+        Returns:
+            tuple: new position of agent.
+        """
         agent = self.World.Agents.Objects.pop(location)[0]
         newLocation = tuple(np.array(location) + np.array(agent.Intention))
         self.World.Agents.Objects[newLocation].append(agent)
@@ -139,6 +148,7 @@ class Simulation:
             dx, dy = agent.Intention
             self.Window.Move(location, dx, dy)
         agent.Intention = (0,0)
+        return newLocation
         
             
         

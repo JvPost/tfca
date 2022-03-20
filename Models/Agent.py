@@ -32,6 +32,7 @@ class Agent(WorldObject):
         self.EnergyCost = senseDistance
         self.Speed = speed
         self.Intention = (0, 0)
+        self.MovingRandom = False
         if angle == None:
             self.Angle = np.random.uniform(0, math.pi*2)
         else:
@@ -61,7 +62,7 @@ class Agent(WorldObject):
         """
         locations = locatedObjects.Objects.keys()
         distances = [np.sqrt(x**2 + y**2) for x,y in locations]
-        dx, dy = list(locations)[np.argmin(distances)]
+        dx, dy = list(locations)[np.argmin(distances)] # choose the closes object
         # if the distance is above max, find the next best allowed location
         dist = math.sqrt(dx**2 + dy**2)
         self.Angle = math.atan2(-dy, dx)
@@ -70,6 +71,7 @@ class Agent(WorldObject):
             dy = -round(self.Speed * math.sin(self.Angle))
                 
         self.Intention = (dx, dy)
+        self.MovingRandom = False
         
     def ChooseRandomNextLocation(self, speed: int) -> tuple:
         """ Calculates a new random location for agent and return is
@@ -86,6 +88,7 @@ class Agent(WorldObject):
         dx = round(self.Speed * math.cos(self.Angle))
         dy = -round(self.Speed * math.sin(self.Angle))
         self.Intention = (dx, dy)
+        self.MovingRandom = True
         
 
     def GetNewLocation(self, currentLocation: tuple) -> tuple:
