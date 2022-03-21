@@ -5,6 +5,7 @@ from Models.WorldObject import WorldObject
 from Models.LocatedObjects import LocatedObjects
 from Models.World import World
 from Models.Plane import Plane
+from Models.Agent import Agent
 
 class Map:
     def __init__(self, world: World = None, locatedObjects: LocatedObjects = LocatedObjects()):
@@ -19,7 +20,7 @@ class Map:
             matrix[y,x] = 1
         return matrix
 
-    def GetDetectedObjects(self, location: tuple, plane: Plane) -> LocatedObjects:
+    def GetDetectedObjects(self, location: tuple, agent: Agent) -> LocatedObjects:
         """Gets LocatedObjects relative to agent
 
         Args:
@@ -30,6 +31,7 @@ class Map:
             LocatedObjects: objects located relative to agent.
         """
         # rel = relative
+        plane = Plane(location, agent.SenseDistance)
         relPlane = plane.Cartesian
         relIndeces = relPlane.reshape(-1, relPlane.shape[-1])
         
@@ -41,8 +43,11 @@ class Map:
             mapIndex = tuple(mapIndeces[i])
             if mapIndex in self.LocatedObjects.Objects.keys():
                 relativePositionIndex = tuple(relIndeces[i])
-                obj = self.LocatedObjects.Objects[mapIndex][0]
-                relLocatedObjects.append((relativePositionIndex, obj))
+                dx, dy = relativePositionIndex
+                dist = np.sqrt(dx**2 + dy**2)
+                if dist <= agent.SenseDistance:
+                    obj = self.LocatedObjects.Objects[mapIndex]
+                    relLocatedObjects.append((relativePositionIndex, obj))
         locatedObjects = LocatedObjects(locatedObjectList=relLocatedObjects)
         return locatedObjects
 

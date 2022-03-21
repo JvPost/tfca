@@ -18,7 +18,7 @@ class World:
 
     def EndOfDay(self):
         for location in self.Agents.keys():
-            agent = self.Agents.Objects[location][0]
+            agent = self.Agents.Objects[location]
             result = agent.EndOfDay()
             if not agent.Alive:
                 self.DyingAgents.append((location, agent))

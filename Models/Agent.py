@@ -2,6 +2,7 @@ from ast import Or
 from .WorldObject import WorldObject
 from .LocatedObjects import LocatedObjects
 from .AgentDayResult import AgentDayResult
+from .MoveCommand import MoveCommand
 
 from enum import IntEnum
 import random
@@ -31,7 +32,7 @@ class Agent(WorldObject):
         self.Alive = True
         self.EnergyCost = senseDistance
         self.Speed = speed
-        self.Intention = (0, 0)
+        self.Move = MoveCommand(0, 0)
         self.MovingRandom = False
         if angle == None:
             self.Angle = np.random.uniform(0, math.pi*2)
@@ -51,7 +52,7 @@ class Agent(WorldObject):
         self.Energy = 0
         return AgentDayResult(child)
 
-    def ChooseNextLocation(self, locatedObjects: LocatedObjects) -> tuple:
+    def ChooseMove(self, locatedObjects: LocatedObjects) -> tuple:
         """_summary_
 
         Args:
@@ -70,10 +71,10 @@ class Agent(WorldObject):
             dx = round(self.Speed * math.cos(self.Angle))
             dy = -round(self.Speed * math.sin(self.Angle))
                 
-        self.Intention = (dx, dy)
+        self.Move = MoveCommand(dx, dy)
         self.MovingRandom = False
         
-    def ChooseRandomNextLocation(self, speed: int) -> tuple:
+    def ChooseRandomMove(self, speed: int) -> tuple:
         """ Calculates a new random location for agent and return is
 
         Args:
@@ -87,7 +88,7 @@ class Agent(WorldObject):
         
         dx = round(self.Speed * math.cos(self.Angle))
         dy = -round(self.Speed * math.sin(self.Angle))
-        self.Intention = (dx, dy)
+        self.Move = MoveCommand(dx, dy)
         self.MovingRandom = True
         
 
@@ -100,7 +101,7 @@ class Agent(WorldObject):
         Returns:
             tuple: new location
         """
-        return tuple(np.array(currentLocation) + np.array(self.Intention))
+        return tuple(np.array(currentLocation) + np.array(self.Move.get()))
 
     
 

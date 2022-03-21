@@ -14,9 +14,8 @@ def main():
     # world config
     worldWidth = 20
     worldHeight = 20
-    stepsPerMove = 1
+    speed = np.sqrt(2)
     timeStepsPerDay = 10
-    slow = False
     
     #agents config    
     agentsCount = 4
@@ -24,13 +23,13 @@ def main():
     agentHeight = 1
     startEnergy = 0
     
-    agents = CreateAgents(agentsCount, agentWidth, agentHeight, startEnergy, stepsPerMove)
+    agents = CreateAgents(agentsCount, agentWidth, agentHeight, startEnergy, speed)
     agent_locations = CreateLocations(worldWidth, worldHeight, agentsCount)
     
     # agents = [Agent(1, 1, 0, 5, 3, 0) for i in range(3)]
     # agent_locations = [(49, 50), (50, 50), (51, 50)]
     
-    locatedAgentsList = zip(agent_locations, agents)
+    locatedAgentsList = [ locatedAgent for locatedAgent in zip(agent_locations, agents)]
     locatedAgents = LocatedObjects(locatedObjectList=locatedAgentsList)
     
     
@@ -45,15 +44,15 @@ def main():
     # foods = [FoodObject(1, 1) for i in range(10)]
     # foodsLocations = [(50, 49 - i) for i in range(10)]
     
-    locatedFoodsList = zip(foodsLocations, foods)
+    locatedFoodsList = [ locatedFood for locatedFood in zip(foodsLocations, foods)]
     locatedFoods = LocatedObjects(locatedObjectList=locatedFoodsList)
 
-    # world config
+    # sim config
+    slow = True
+    visualize = True
     simulationLength = 1000
     world = World(worldWidth, worldHeight, locatedAgents, locatedFoods)
-
-    visualize = False
-    sim = Simulation(world, stepsPerMove, simulationLength, timeStepsPerDay, visualize=visualize)
+    sim = Simulation(world, speed, simulationLength, timeStepsPerDay, visualize=visualize)
     start_statistics = Statistics(1, locatedAgents)
     stop = False
     while(not stop):
@@ -64,7 +63,7 @@ def main():
         # new food
         foods = CreateFood(foodCount, foodWidth, foodHeight)
         foodsLocations = CreateLocations(worldWidth, worldHeight, foodCount)
-        locatedFoodsList = zip(foodsLocations, foods)
+        locatedFoodsList = [ locatedFood for locatedFood in zip(foodsLocations, foods)]
         locatedFoods = LocatedObjects(locatedObjectList=locatedFoodsList)
         world.Food = locatedFoods
         

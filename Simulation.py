@@ -1,10 +1,11 @@
 from typing import DefaultDict
-from Models.LocatedObjects import LocatedObjects
+from Models.LocatedObjects import LocatedObjects, LocatedObject
 from Models.Map import Map
 from Models.Agent import Agent, AgentState, Orientation
 from Models.Plane import Plane
 from Models.World import World
 from Models.Statistics import Statistics
+from Models.MoveCommand import MoveCommand
 from Window import Window
 
 from Graphics.graphics import *
@@ -39,6 +40,7 @@ class Simulation:
         
     
     def TimeStep(self, wait = False) -> bool:
+        self.UpdateFoodMap(self.World)
         self.UpdateAgentMap(self.World, self.StepsPerMove)
         self.UpdateFoodMap(self.World)
         self.CurrentTimeStep+=1
@@ -57,42 +59,70 @@ class Simulation:
         foodMap = Map(world, world.Food)
 
         # dict with new locations as key and values is the list of locations of agents that want to move to the location that is the key
-        proposedMoves = defaultdict(list)
+        proposedMoves = LocatedObjects()
 
         for loc in agentMap.LocatedObjects.Objects.keys():
-            agent = agentMap.LocatedObjects.Objects[loc][0] # this is possible because there is always only one agent at location at this time
-            perceptionPlane = Plane(loc, agent.SenseDistance)
-            detectedFood = foodMap.GetDetectedObjects(loc, perceptionPlane)
+            agent = agentMap.LocatedObjects.Objects[loc]            
+            detectedFood = foodMap.GetDetectedObjects(loc, agent)
+            detectedAgents = agentMap.GetDetectedObjects(loc, agent)
+            
             if len(detectedFood) > 0:
-                agent.ChooseNextLocation(detectedFood)
-                agentNewLocation = agent.GetNewLocation(loc)
+                agent.ChooseMove(detectedFood)
             else:
-                agent.ChooseRandomNextLocation(speed)
+                agent.ChooseRandomMove(speed)
+                
             agentNewLocation = agent.GetNewLocation(loc)
             
+            
             if self.WithinBounds(agentNewLocation): # TODO: make OO
-                proposedMoves[agentNewLocation].append(loc)
+                if agentNewLocation not in proposedMoves.Objects:
+                    newLocatedObjects = LocatedObjects()
+                    newLocatedObjects.add(loc, self.World.Agents.Objects[loc])
+                    proposedMoves.add(agentNewLocation, newLocatedObjects)
+                    # proposedMoves.add(agentNewLocation, LocatedObjects(locatedObjectList=[(loc, self.World.Agents.Objects[loc])]))
+                else:
+                    proposedMoves.Objects[agentNewLocation].add(loc, agent)
             else:
                 agent.Angle = (agent.Angle + math.pi) % 2*math.pi
             
+        self.MoveAgents(proposedMoves, agentMap)
+        
+    def SortMoves(self, proposedMoves: defaultdict) -> list:
+        locatedAgents = LocatedObjects()
+        for new_loc in proposedMoves.Objects:
+            movingAgents = proposedMoves.Objects[new_loc]
+            for agentLoc in movingAgents.Objects:
+                locatedAgents.add(agentLoc, )
+                continue
+        return []
+        
+    def MoveAgents(self, proposedMoves: defaultdict, agentMap: Map):
+        """_summary_ TODO
 
+        Args:
+            proposedMoves (defaultdict): default new locations as keys and locatedobjects as value
+        """
         # work out collisions
         winningAgents = LocatedObjects() # agents that are actualy going to move
         losingAgents = LocatedObjects() # agents that will lose out ot stronger agents and stay put
-    
+        
+        # sorted
+        queue = []
+        # queue = self.SortMoves(proposedMoves)
+        
         for new_loc in proposedMoves.keys():            
-            movingAgents = LocatedObjects(locatedObjectList=[[origin,
-                                                              self.World.Agents.Objects[origin][0]] for origin in proposedMoves[new_loc]])
-            
-            if len(movingAgents) == 1: # no colision
-                origin = proposedMoves[new_loc][0]
-                agent = self.World.Agents.Objects[origin][0]
-                winningAgents.add(origin, agent)
+            # movingAgents = LocatedObjects(locatedObjectList=[[origin,
+            #                                                   self.World.Agents.Objects[origin]] for origin in proposedMoves[new_loc]])
+            movingAgents = proposedMoves.Objects[new_loc]
+            if movingAgents.count() == 1: # no colision
+                origin = list(proposedMoves.Objects[new_loc].keys())[0]
+                agent = self.World.Agents.Objects[origin]
+                winningAgents.add(origin, agent)               
             else: # collision
                 energies = []
                 winningAgentOrigin, winningAgent = None, None
-                for origin in proposedMoves[new_loc]:
-                    agent = self.World.Agents.Objects[origin][0]
+                for origin in proposedMoves.Objects[new_loc].keys():
+                    agent = self.World.Agents.Objects[origin]
                     if len(energies) > 0:
                         if agent.Energy == max(energies) and random.randint(0, 1) == 1:
                             losingAgents.add(winningAgentOrigin, winningAgent)
@@ -113,42 +143,57 @@ class Simulation:
                             
         # actually move winning agents
         for origin in winningAgents.keys():
-            newLocation = self.MoveAgent(origin)
-            agentAtLoc = self.World.Agents.Objects[newLocation]
-            foodsAtLoc = self.World.Food.Objects[newLocation]
-            if len(agentAtLoc) > 1:
-                continue
+            moved = self.MoveAgent(origin)
+            if not moved:
+                queue.append(origin)
+                
             
-        
-        # reset not moving agents intent to zero
+        # move losing agents to a cell next to desired location.
         for origin in losingAgents.keys():
-            agent = losingAgents.Objects[origin][0]
-            newLocation = (origin[0] + agent.Intention[0], origin[1] + agent.Intention[1])
+            agent = losingAgents.Objects[origin]
+            dx, dy = agent.Move.get()
+            newLocation = (origin[0] + dx, origin[1] + dy)
             neighborCells = agentMap.FindClosestEmptyCells(newLocation)
             neighborCell = neighborCells[np.random.randint(0, len(neighborCells))]
-            agent.Intention = (neighborCell[0] + agent.Intention[0], neighborCell[1] + agent.Intention[1])
-            self.MoveAgent(origin)
+            agent.Move = MoveCommand(neighborCell[0] + dx, neighborCell[1] + dy)
+            moved = self.MoveAgent(origin)
+            if not moved:
+                queue.append(origin)
+                
+        
+        while len(queue) != 0:
+            currLoc = queue.pop(0)
+            moved = self.MoveAgent(currLoc)
+            if not moved:
+                queue.append(currLoc)
             
         
-    def MoveAgent(self, location: tuple) -> tuple:
+        
+    def MoveAgent(self, location: tuple) -> bool:
         """Takes an agent on location and moves it based on it's intent. The visualization module is also updated.
 
         Args:
             location (tuple): the location of the agent to be moved.
 
         Returns:
-            tuple: new position of agent.
+            bool: whether move was succesfull
         """
-        agent = self.World.Agents.Objects.pop(location)[0]
-        newLocation = tuple(np.array(location) + np.array(agent.Intention))
-        self.World.Agents.Objects[newLocation].append(agent)
+        agent = self.World.Agents.Objects[location]
+        newLocation = tuple(np.array(location) + np.array(agent.Move.get()))
         
-        # visualize
-        if self.Visualize:
-            dx, dy = agent.Intention
-            self.Window.Move(location, dx, dy)
-        agent.Intention = (0,0)
-        return newLocation
+        if (newLocation not in self.World.Agents.Objects):
+            agent = self.World.Agents.Objects.pop(location)
+            self.World.Agents.add(newLocation, agent)
+            
+            # visualize
+            if self.Visualize:
+                dx, dy = agent.Move.get()
+                self.Window.Move(location, dx, dy)
+            agent.Move = MoveCommand(dx, dy)
+            return True
+        else:
+            return False
+            
         
             
         
@@ -168,7 +213,7 @@ class Simulation:
             while (x, y) in self.World.Agents.Objects:
                 x = random.randint(0, self.World.Width-1)
                 y = random.randint(0, self.World.Height-1)
-            self.World.Agents.Objects[(x,y)].append(agent)
+            self.World.Agents.add((x,y), agent)
             
             if self.Visualize:
                 self.Window.Draw((x, y))
@@ -185,8 +230,9 @@ class Simulation:
         for agent_location in world.Agents.keys():
             if agent_location in world.Food.keys():
                 # increase agents' energy by one
-                world.Agents.Objects[agent_location][0].Eat()
+                world.Agents.Objects[agent_location].Eat()
                 
                 # remove food
                 world.Food.Objects.pop(agent_location)
                 
+        
