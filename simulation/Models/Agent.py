@@ -85,7 +85,7 @@ class Agent(WorldObject):
         Returns:
             tuple: _description_
         """
-        self.Angle = np.random.normal(self.Angle, 0.1) % 2*math.pi
+        self.Angle = np.random.normal(self.Angle, math.pi/4) % 2*math.pi
         dx = round(self.Speed * math.cos(self.Angle))
         dy = -round(self.Speed * math.sin(self.Angle))
         self.Move = MoveCommand(dx, dy)

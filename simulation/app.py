@@ -12,11 +12,11 @@ def main():
     # world config
     worldWidth = 50
     worldHeight = 50
-    speed = np.sqrt(2)
+    speed = np.sqrt(9)
     timeStepsPerDay = 40
     
     #agents config    
-    agentsCount = 1
+    agentsCount = 10
     agentWidth = 1
     agentHeight = 1
     startEnergy = 0
@@ -29,7 +29,7 @@ def main():
     
     
     #food config
-    foodCount = 200
+    foodCount = 1500
     foodWidth = 1
     foodHeight = 1
     

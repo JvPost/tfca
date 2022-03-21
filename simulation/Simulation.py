@@ -6,7 +6,7 @@ from Models.Plane import Plane
 from Models.World import World
 from Models.Statistics import Statistics
 from Models.MoveCommand import MoveCommand
-from Window import Window
+from Graphics.Window import Window
 
 from Graphics.graphics import *
 

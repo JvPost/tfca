@@ -47,6 +47,7 @@ class Window:
             x, y = location
             pt = Point(x * self.Scale + self.Margin, y * self.Scale + self.Margin)
             self.FoodPoints[location] = pt
+            pt.setOutline('red')
             pt.draw(self.Win)
             
     def DeleteOldFood(self):
