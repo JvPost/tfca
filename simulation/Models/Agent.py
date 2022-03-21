@@ -34,13 +34,14 @@ class Agent(WorldObject):
         self.Speed = speed
         self.Move = MoveCommand(0, 0)
         self.MovingRandom = False
+        self.Parent = None
         if angle == None:
             self.Angle = np.random.uniform(0, math.pi*2)
         else:
             self.Angle = angle
 
     def Eat(self) -> None:
-        self.Energy = self.Energy+1
+        self.Energy += 1
 
     def EndOfDay(self) -> AgentDayResult:
         self.Energy -= (round(self.EnergyCost/3) + 1)
@@ -74,7 +75,7 @@ class Agent(WorldObject):
         self.Move = MoveCommand(dx, dy)
         self.MovingRandom = False
         
-    def ChooseRandomMove(self, speed: int) -> tuple:
+    def ChooseRandomMove(self):
         """ Calculates a new random location for agent and return is
 
         Args:
@@ -84,8 +85,7 @@ class Agent(WorldObject):
         Returns:
             tuple: _description_
         """
-        # self.Angle = np.random.normal(self.Angle, 0.1) % 2*math.pi
-        
+        self.Angle = np.random.normal(self.Angle, 0.1) % 2*math.pi
         dx = round(self.Speed * math.cos(self.Angle))
         dy = -round(self.Speed * math.sin(self.Angle))
         self.Move = MoveCommand(dx, dy)
@@ -106,7 +106,9 @@ class Agent(WorldObject):
     
 
     def Replicate(self):
-        childSenseRange = max(0, round(np.random.normal(self.SenseDistance, 1)))
+        childSenseRange = max(0, round(np.random.normal(self.SenseDistance, 0.5)))
+        childSenseRange = min(9, childSenseRange)
         child = Agent(self.Width, self.Height, 0,
                       childSenseRange, self.Speed)
+        child.Parent = self
         return child

@@ -1,8 +1,8 @@
 class LocatedObject():
     def __init__(self, x: int, y: int, obj):
-        self.X = x
-        self.Y = y
-        self.Object = obj
+        self.x = x
+        self.y = y
+        self.object = obj
 
 class LocatedObjects():
     def __init__(self, locatedObjectDict: dict = None, locatedObjectList: list = None):
@@ -26,7 +26,6 @@ class LocatedObjects():
         elif locatedObjectList is not None:
             for location, obj in locatedObjectList:
                 self.Objects[tuple(location)] = obj
-        self.ObjectsList = self.ToList()
         
     def ToList(self):
         if len(self.Objects) > 0:
@@ -45,7 +44,15 @@ class LocatedObjects():
             raise Exception("Already an object of this type at this location.")
         else:
             self.Objects[key] = value
-            self.ObjectsList.append(value)
             
     def count(self):
         return len(self.Objects)
+    
+    def get(self, index: int):
+        return list(self.Objects.items())[0]
+    
+    def pop_at(self, index: int):
+        loc, agent = self.get(0)
+        self.Objects.pop(loc)
+        return loc, agent
+        
