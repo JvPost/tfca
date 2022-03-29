@@ -6,8 +6,9 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 X = [x for x in range(0, 10)]
 
+
 def animate(i):
-    data = open('../../data', 'r').read()
+    data = open('../../awareness_data', 'r').read()
     if data != '':
         Y = [float(y) for y in np.array(data.split(' '))] 
         ax.clear()

@@ -12,7 +12,7 @@ def main():
     # world config
     worldWidth = 50
     worldHeight = 50
-    speed = np.sqrt(9)
+    speed = 3
     timeStepsPerDay = 40
     
     #agents config    
@@ -29,7 +29,7 @@ def main():
     
     
     #food config
-    foodCount = 1500
+    foodCount = 1000
     foodWidth = 1
     foodHeight = 1
     
@@ -41,13 +41,20 @@ def main():
 
     # sim config
     slow = False
-    visualize = True
+    visualize = False
     scale = 10
-    simulationLength = 1000
+    simulationLength = 50
     world = World(worldWidth, worldHeight, locatedAgents, locatedFoods)
     sim = Simulation(world, speed, simulationLength, timeStepsPerDay, visualize, scale)
     start_statistics = Statistics(1, locatedAgents)
     stop = False
+    
+    # clear data
+    with open('population_size_data', 'r+') as f:
+        f.truncate(0)
+    with open('awareness_data', 'r+') as f:
+        f.truncate(0)
+
     
     while(not stop):
         world_statistics = sim.Iterate(slow)
@@ -71,7 +78,7 @@ def CreateAgents(agentsCount: int, agentWidth: int,
                  stepsPerMove) -> list:
     agents = []
     while agentsCount > len(agents):
-        senseDistance = random.randint(0, 9)
+        senseDistance = random.randint(0, 3)
         agent = Agent(agentWidth, agentHeight, startEnergy, senseDistance, stepsPerMove)
         agents.append(agent)
     return agents
@@ -95,9 +102,11 @@ def PrintStatistics(stats: Statistics, stop: int ) -> None:
     print(
         f"Day {stats.Day} - {len(stats.Agents)} agents:\n{stats.AgentHist(stop)}"
     )
-    with open('data', 'w') as f:
+    with open('awareness_data', 'w') as f:
         string = " ".join([str(y) for y in stats.AgentHist(stop)])
         f.write(string)
+    with open('population_size_data', 'a') as f:
+        f.write(f"{len(stats.Agents)},")
     
     
 if __name__ == "__main__":
